@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Video Count</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <img src="static/nothingbutwall.jpg" alt="Logo" class="logo">
+    <div id="notification" style="display: none; background-color: #28a745; color: white; text-align: center; padding: 10px; position: fixed; top: 0; left: 0; width: 100%; z-index: 1000;">
+        YouTube View Count has started.
+    </div>
+
+    <div class="container" id="mainPage">
+        <h1>Youtube Viewer</h1>
+        <p>Enter YouTube URLs and the number of views for each:</p>
+        <div id="inputFields">
+            <div class="input-group">
+                <input type="text" class="youtubeUrl" placeholder="Paste YouTube URL here" />
+                <input type="number" class="viewCount" placeholder="Enter number of views" min="1" />
+            </div>
+        </div>
+        <button id="addMore" onclick="addInputFields()">Add More</button>
+        <button onclick="redirectToVideos()">Open Videos</button>
+    </div>
+
+    <script>
+        let maxLinks = 5;
+
+        function addInputFields() {
+            const inputFields = document.getElementById('inputFields');
+            const currentCount = document.querySelectorAll('.input-group').length;
+
+            if (currentCount < maxLinks) {
+                const newGroup = document.createElement('div');
+                newGroup.classList.add('input-group');
+
+                newGroup.innerHTML = `
+                    <input type="text" class="youtubeUrl" placeholder="Paste YouTube URL here" />
+                    <input type="number" class="viewCount" placeholder="Enter number of views" min="1" />
+                    <button type="button" class="remove-button" onclick="removeInputGroup(this)">X</button>
+                `;
+
+                inputFields.appendChild(newGroup);
+            } else {
+                alert('Maximum of 5 video links allowed.');
+            }
+        }
+
+        function removeInputGroup(button) {
+            const inputGroup = button.parentElement;
+            inputGroup.remove();
+        }
+
+        function redirectToVideos() {
+            const videoData = [];
+            const urls = document.querySelectorAll('.youtubeUrl');
+            const views = document.querySelectorAll('.viewCount');
+
+            urls.forEach((urlField, index) => {
+                const url = urlField.value.trim();
+                const viewCount = parseInt(views[index].value, 10);
+
+                if (!url || !url.startsWith('http') || !url.includes('youtube.com')) {
+                    alert('Please enter a valid YouTube URL.');
+                    return;
+                }
+                if (isNaN(viewCount) || viewCount <= 0) {
+                    alert('Please enter a valid number of views.');
+                    return;
+                }
+
+                const embedUrl = url.includes('?') ? `${url}&autoplay=1` : `${url}?autoplay=1`;
+                videoData.push({ url: embedUrl, views: viewCount });
+            });
+
+            const notification = document.getElementById('notification');
+            notification.style.display = 'block';
+
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 3000);
+
+            fetch('/redirect', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(videoData),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('View count process successfully completed!');
+                } else {
+                    alert(`Error: ${data.message}`);
+                }
+            })
+            .catch(error => {
+                alert('An error occurred: ' + error.message);
+            });
+        }
+    </script>
+</body>
+</html>
